@@ -7,7 +7,12 @@ AlphaCommerceHub integration with Woccommerce
 ## How to install
 
 ### 1. Free installation service
-To do an automatic install of AlphaCommerceHub WooCommerce,download zip from github of plugin and log in to your WordPress dashboard, navigate to the Plugins menu
-, click Add New and Upload Plugin, now browse AlphaCommerceHub WooCommerce zip.You can install it by simply clicking “Install Now”.
+- Download the Github plugin zip file.
+- Login to your WordPress Admin. Click on Plugins | Add New from the left hand menu.
+- Click on the “Upload” option, then click “Choose File” to select the zip file from your computer. Once selected, press “OK” and press the “Install Now” button.
+- Activate the plugin.
+- Open the settings page for WooCommerce and click the “Checkout” tab.
+- Click on the sub tab for “Paypal (Alpha Commerce Hub) , Bank Card (Alpha Commerce Hub).”
+- Configure your Alpha Commerce Hub Gateway settings.
 
 
