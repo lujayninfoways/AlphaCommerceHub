@@ -8,7 +8,7 @@
    Author URI: 
    License: Under GPL2
    WC requires at least: 3.0.0
-   WC tested up to: 3.2.0
+   WC tested up to: 3.3.0
 */
 
 if ( ! defined( 'ABSPATH' ) ) {
