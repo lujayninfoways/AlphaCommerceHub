@@ -203,7 +203,7 @@ class WC_Gateway_Alphacard extends WC_Payment_Gateway {
 
 		</script>
 		<?php $total = wc_format_decimal($order->get_total(), 2, true) * 1000 ; ?>
-				<form id="shopform1" name="shopform1" method="POST" action="<?php echo 'https://hubuat.alphacommercehub.com.au/'.$this->get_option('url'); ?>" accept-charset="UTF-8" >
+				<form id="shopform1" name="shopform1" method="POST" action="<?php echo 'https://hubuat.alphacommercehub.com.au/pp/'.$this->get_option('url'); ?>" accept-charset="UTF-8" >
 			
 					<input type="hidden" name="Amount" value="<?php echo $total; ?>">
 					<input type="hidden" name="Currency" value="<?php echo $order->get_currency(); ?>">
