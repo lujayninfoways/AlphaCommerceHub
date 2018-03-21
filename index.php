@@ -337,7 +337,7 @@ else{
       ?>
       <div class="error" style="padding: 8px 8px;">
         <strong>
-          <?= __('AlphaCommerceHub plugin requires <a href="http://www.woothemes.com/woocommerce/" target="_blank">WooCommerce</a> activated in order to work. Please install and activate <a href="' . admin_url('plugin-install.php?tab=search&type=term&s=WooCommerce') . '" target="_blank">WooCommerce</a> first.','video_gallery') ?>
+          <?= __('Alpha commerce hub woocommerce requires <a href="http://www.woothemes.com/woocommerce/" target="_blank">WooCommerce</a> activated in order to work. Please install and activate <a href="' . admin_url('plugin-install.php?tab=search&type=term&s=WooCommerce') . '" target="_blank">WooCommerce</a> first.','video_gallery') ?>
         </strong>
       </div>
       <?php
