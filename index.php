@@ -56,67 +56,20 @@ class WC_Gateway_Alphapaypal extends WC_Payment_Gateway {
 		$this->receiver_email = $this->get_option( 'receiver_email', $this->email );
 		$this->identity_token = $this->get_option( 'identity_token' );
 
-		self::$log_enabled    = $this->debug;
-
-		add_action( 'woocommerce_update_options_payment_gateways_' . $this->id, array( $this, 'process_admin_options' ) );
-		add_action( 'woocommerce_order_status_on-hold_to_processing', array( $this, 'capture_payment' ) );
-		add_action( 'woocommerce_order_status_on-hold_to_completed', array( $this, 'capture_payment' ) );
-
-		if ( ! $this->is_valid_for_use() ) {
-			$this->enabled = 'no';
-		} else {
+		 // Customer Emails
+        add_action( 'woocommerce_email_before_order_table', array( $this, 'email_instructions' ), 10, 3 );
 		
-			include_once( dirname( __FILE__ ) . '/includes/paypal-ipn-handler.php' );
-			new WC_Gateway_Alphapaypal_IPN_Handler( $this->testmode, $this->receiver_email );
+		//Actions
+		add_action('woocommerce_receipt_' . $this->id, array( $this, 'receipt_page' ));
+		 add_action('woocommerce_update_options_payment_gateways_' . $this->id, array($this, 'process_admin_options'));
+		add_action('woocommerce_thankyou_alpha', array( $this, 'thankyou_page' ) );
+		// Payment listener/API hook
+		add_action('woocommerce_api_wc_gateway_alpha', array($this, 'check_response'));
 
-			if ( $this->identity_token ) {
-				include_once( dirname( __FILE__ ) . '/includes/paypal-pdt-handler.php' );
-				new WC_Gateway_Alphapaypal_PDT_Handler( $this->testmode, $this->identity_token );
-			}
-		}
-	}
-
-	/**
-	 * Logging method.
-	 *
-	 * @param string $message Log message.
-	 * @param string $level   Optional. Default 'info'.
-	 *     emergency|alert|critical|error|warning|notice|info|debug
-	 */
-	public static function log( $message, $level = 'info' ) {
-		if ( self::$log_enabled ) {
-			if ( empty( self::$log ) ) {
-				self::$log = wc_get_logger();
-			}
-			self::$log->log( $level, $message, array( 'source' => 'paypal' ) );
-		}
+	
 	}
 
 	
-	/**
-	 * Check if this gateway is enabled and available in the user's country.
-	 * @return bool
-	 */
-	public function is_valid_for_use() {
-		return in_array( get_woocommerce_currency(), apply_filters( 'woocommerce_paypal_supported_currencies', array( 'AUD', 'BRL', 'CAD', 'MXN', 'NZD', 'HKD', 'SGD', 'USD', 'EUR', 'JPY', 'TRY', 'NOK', 'CZK', 'DKK', 'HUF', 'ILS', 'MYR', 'PHP', 'PLN', 'SEK', 'CHF', 'TWD', 'THB', 'GBP', 'RMB', 'RUB', 'INR' ) ) );
-	}
-
-	/**
-	 * Admin Panel Options.
-	 * - Options for bits like 'title' and availability on a country-by-country basis.
-	 *
-	 * @since 1.0.0
-	 */
-	public function admin_options() {
-		if ( $this->is_valid_for_use() ) {
-			parent::admin_options();
-		} else {
-			?>
-			<div class="inline error"><p><strong><?php _e( 'Gateway disabled', 'woocommerce' ); ?></strong>: <?php _e( 'PayPal does not support your store currency.', 'woocommerce' ); ?></p></div>
-			<?php
-		}
-	}
-
 	/**
 	 * Initialise Gateway Settings Form Fields.
 	 */
@@ -157,11 +110,95 @@ class WC_Gateway_Alphapaypal extends WC_Payment_Gateway {
 		'default'     => 'no',
 		'description' => sprintf( __( 'PayPal sandbox can be used to test payments. Sign up for a <a href="%s">developer account</a>.', 'woocommerce' ), 'https://developer.paypal.com/' ),
 	),
+	'MerchantId' => array(
+        'title'		  => __('Alpha Bank Merchant ID', 'woocommerce'),
+        'type' 		  => 'text',
+        'description' => __('Enter Your Alpha Bank Merchant ID', 'woocommerce'),
+        'default' 	  => '',
+        'desc_tip'    => true
+	),
+	'url' => array(
+		'title'       => __( 'Hosted Payment Page URL', 'woocommerce' ),
+		'type'        => 'text',
+		'description' => __( 'Hosted Payment Page URL that the customer will use for UAT or Production.', 'woocommerce' ),
+		'default'     => __( '', 'woocommerce' ),
+		'desc_tip'    => true,
+	),
+	'UserID' => array(
+		'title'       => __( 'User ID', 'woocommerce' ),
+		'type'        => 'text',
+		'description' => __( 'User ID', 'woocommerce' ),
+		'default'     => __( '', 'woocommerce' ),
+				
+	),
 
 );
 
 	}
 
+ protected function get_alpha_args( $order, $uniqid, $installments ) {
+		$return = WC()->api_request_url( 'WC_Gateway_Alphacard' );
+		$address = array(
+				'address_1'     => ( WC()->version >= '3.0.0' ) ? $order->get_billing_address_1() : $order->billing_address_1,
+                'address_2'     => ( WC()->version >= '3.0.0' ) ? $order->get_billing_address_2() : $order->billing_address_2,
+                'city'          => ( WC()->version >= '3.0.0' ) ? $order->get_billing_city() : $order->billing_city,
+                'state'         => ( WC()->version >= '3.0.0' ) ? $order->get_billing_state() : $order->billing_state,
+                'postcode'      => ( WC()->version >= '3.0.0' ) ? $order->get_billing_postcode() : $order->billing_postcode,
+                'country'       => ( WC()->version >= '3.0.0' ) ? $order->get_billing_country() : $order->billing_country
+				);
+
+		$args = array_merge($args, array(
+			'confirmUrl' => add_query_arg( 'confirm', ( WC()->version >= '3.0.0' ) ? $order->get_id() : $order->id , $return),
+			'cancelUrl'  => add_query_arg( 'cancel', ( WC()->version >= '3.0.0' ) ? $order->get_id() : $order->id , $return), 
+		));
+				
+		return apply_filters( 'woocommerce_alpha_args', $args , $order );
+	} 
+
+
+    /**
+	* Output for the order received page.
+	* */
+	public function receipt_page($order_id) {
+		echo '<p>' . __('Thank you - your order is now pending payment. Please click the button below to proceed.', 'woocommerce') . '</p>';
+		$order = wc_get_order( $order_id );
+		$uniqid = uniqid();
+						
+		$form_data = $this->get_alpha_args($order, $uniqid, 0);
+		$digest = base64_encode(sha1(implode("", array_merge($form_data, array('secret' => $this->Secret))), true));
+
+		$html_form_fields = array(); ?>
+
+		 <script type="text/javascript">
+		jQuery(document).ready(function(){
+  
+		    var alphabank_payment_form = document.getElementById('shopform1');
+			alphabank_payment_form.style.visibility="hidden";
+			alphabank_payment_form.submit();
+
+		}); 
+		</script> 
+		<?php $total = wc_format_decimal($order->get_total(), 2, true) * 1000 ; ?>
+				<form id="shopform1" name="shopform1" method="POST" action="<?php echo 'https://hubuat.alphacommercehub.com.au/'.$this->get_option('url'); ?>" accept-charset="UTF-8" >
+			
+					<input type="hidden" name="Amount" value="<?php echo $total; ?>">
+					<input type="hidden" name="Currency" value="<?php echo $order->get_currency(); ?>">
+					<input type="hidden" name="CancelURL" value="<?php global $woocommerce; echo $woocommerce->cart->get_checkout_url(); ?>">
+					<input type="hidden" name="business" value="<?php echo $this->get_option('email'); ?>">
+					<input type="hidden" name="MerchantTxnID" value="<?php echo $order_id; ?>">
+					<input type="hidden" name="MerchantID" value="<?php echo $this->get_option('MerchantId'); ?>">
+					<input type="hidden" name="UserId" value="1">	
+					<input type="hidden" name="Version" value="2">	
+					<input type="hidden" name="ChannelType" value="07">		
+					<input type="hidden" name="TransactionType" value="AuthPayment">		
+					<input type="submit" class="button alt" id="submit_twocheckout_payment_form" value="<?php echo __( 'Pay via Alpha bank', 'woocommerce' ) ?>" /> 
+					<a class="button cancel" href="<?php echo esc_url( $order->get_cancel_order_url() )?>"><?php echo __( 'Cancel order &amp; restore cart', 'woocommerce' )?></a>
+				</form>		
+		<?php
+		
+		
+		$order->update_status( 'pending', __( 'Sent request to Alpha bank with orderID: ' . $form_data['orderid'] , 'woocommerce' ) );
+	}
 
 	/**
 	 * Process the payment and return the result.
@@ -169,109 +206,93 @@ class WC_Gateway_Alphapaypal extends WC_Payment_Gateway {
 	 * @return array
 	 */
 	public function process_payment( $order_id ) {
-		include_once( dirname( __FILE__ ) . '/includes/paypal-request.php' );
+		$order = wc_get_order( $order_id );
 
-		$order          = wc_get_order( $order_id );
-		$paypal_request = new WC_Gateway_Alphapaypal_Request( $this );
-
-		return array(
-			'result'   => 'success',
-			'redirect' => $paypal_request->get_request_url( $order, $this->testmode ),
+		 return array(
+		 	'result' 	=> 'success',
+		 	'redirect'	=> $order->get_checkout_payment_url( true ) // $this->get_return_url( $order )
 		);
 	}
-
+	
 	/**
-	 * Can the order be refunded via PayPal?
-	 * @param  WC_Order $order
-	 * @return bool
-	 */
-	 public function can_refund_order( $order ) {
-		return $order && $order->get_transaction_id();
-	}
-
-	/**
-	 * Init the API class and set the username/password etc.
-	 */
-	 protected function init_api() {
-		include_once( dirname( __FILE__ ) . '/includes/paypal-api-handler.php' );
-
-		WC_Gateway_Alphapaypal_API_Handler::$api_username  = $this->get_option( 'api_username' );
-		WC_Gateway_Alphapaypal_API_Handler::$api_password  = $this->get_option( 'api_password' );
-		WC_Gateway_Alphapaypal_API_Handler::$api_signature = $this->get_option( 'api_signature' );
-		WC_Gateway_Alphapaypal_API_Handler::$sandbox       = $this->testmode;
-	}
-
-	/**
-	 * Process a refund if supported.
-	 * @param  int    $order_id
-	 * @param  float  $amount
-	 * @param  string $reason
-	 * @return bool|WP_Error
-	 */
-	public function process_refund( $order_id, $amount = null, $reason = '' ) {
-		$order = wc_get_order( $order_id );
-
-		if ( ! $this->can_refund_order( $order ) ) {
-			$this->log( 'Refund Failed: No transaction ID', 'error' );
-			return new WP_Error( 'error', __( 'Refund failed: No transaction ID', 'woocommerce' ) );
+     * Output for the order received page.
+     */
+    public function thankyou_page() {
+		if ( $this->instructions ) {
+        	echo wpautop( wptexturize( $this->instructions ) );
 		}
-
-		$this->init_api();
-
-		$result = WC_Gateway_Alphapaypal_API_Handler::refund_transaction( $order, $amount, $reason );
-
-		if ( is_wp_error( $result ) ) {
-			$this->log( 'Refund Failed: ' . $result->get_error_message(), 'error' );
-			return new WP_Error( 'error', $result->get_error_message() );
-		}
-
-		$this->log( 'Refund Result: ' . wc_print_r( $result, true ) );
-
-		switch ( strtolower( $result->ACK ) ) {
-			case 'success':
-			case 'successwithwarning':
-				$order->add_order_note( sprintf( __( 'Refunded %1$s - Refund ID: %2$s', 'woocommerce' ), $result->GROSSREFUNDAMT, $result->REFUNDTRANSACTIONID ) );
-				return true;
-			break;
-		}
-
-		return isset( $result->L_LONGMESSAGE0 ) ? new WP_Error( 'error', $result->L_LONGMESSAGE0 ) : false;
 	}
-
+	
 	/**
-	 * Capture payment when the order is changed from on-hold to complete or processing
-	 *
-	 * @param  int $order_id
-	 */
-	public function capture_payment( $order_id ) {
-		$order = wc_get_order( $order_id );
+		* Verify a successful Payment!
+	* */
+	public function check_response() { 
+		$required_response = array(
+			'mid' => '',
+			'orderid' => '',
+			'status' => '',
+			'orderAmount' => '',
+			'currency' => '',
+			'paymentTotal' => ''
+		);
+		
+		$notrequired_response = array(
+			'message' => '',
+			'riskScore' => '',
+			'payMethod' => '',
+			'txId' => '',
+			'sequence' => '',
+			'seqTxId' => '',
+			'paymentRef' => '' 
+		);
+		
 
-		if ( 'paypal' === $order->get_payment_method() && 'pending' === get_post_meta( $order->get_id(), '_paypal_status', true ) && $order->get_transaction_id() ) {
-			$this->init_api();
-			$result = WC_Gateway_Alphapaypal_API_Handler::do_capture( $order );
-
-			if ( is_wp_error( $result ) ) {
-				$this->log( 'Capture Failed: ' . $result->get_error_message(), 'error' );
-				$order->add_order_note( sprintf( __( 'Payment could not captured: %s', 'woocommerce' ), $result->get_error_message() ) );
-				return;
+		
+		foreach ($required_response as $key => $value) {
+			if (isset($_REQUEST[$key])){
+				$required_response[$key] = $_REQUEST[$key];
 			}
+			else{
+				// required parameter not set 
+				wp_die( 'Alpha Bank Request Failure', 'Alpha Bank Gateway', array( 'response' => 500 ) );
+			}
+		}
+		
+		foreach ($notrequired_response as $key => $value) {
+			if (isset($_REQUEST[$key])){
+				$required_response[$key] = $_REQUEST[$key];
+			}
+			else{
+			}
+		}
 
-			$this->log( 'Capture Result: ' . wc_print_r( $result, true ) );
-
-			if ( ! empty( $result->PAYMENTSTATUS ) ) {
-				switch ( $result->PAYMENTSTATUS ) {
-					case 'Completed' :
-						$order->add_order_note( sprintf( __( 'Payment of %1$s was captured - Auth ID: %2$s, Transaction ID: %3$s', 'woocommerce' ), $result->AMT, $result->AUTHORIZATIONID, $result->TRANSACTIONID ) );
-						update_post_meta( $order->get_id(), '_paypal_status', $result->PAYMENTSTATUS );
-						update_post_meta( $order->get_id(), '_transaction_id', $result->TRANSACTIONID );
-					break;
-					default :
-						$order->add_order_note( sprintf( __( 'Payment could not captured - Auth ID: %1$s, Status: %2$s', 'woocommerce' ), $result->AUTHORIZATIONID, $result->PAYMENTSTATUS ) );
-					break;
+		
+		if(isset($_REQUEST['cancel'])){
+			$order = wc_get_order(wc_clean($_REQUEST['cancel']));
+			if (isset($order)){
+				$order->add_order_note('Alpha Bank Payment <strong>' . $required_response['status'] . '</strong>. txId: ' . $required_response['txId'] . '. ' . $required_response['message'] );
+				wp_redirect( $order->get_cancel_order_url_raw());
+				exit();
+			}
+		}
+		else if (isset($_REQUEST['confirm'])){
+			$order = wc_get_order(wc_clean($_REQUEST['confirm']));
+			if (isset($order)){
+				if ($required_response['orderAmount'] == wc_format_decimal($order->get_total(), 2, false)){
+					$order->add_order_note('Alpha Bank Payment <strong>' . $required_response['status'] . '</strong>. txId: ' . $required_response['txId'] . '. payMethod: ' . $required_response['payMethod']. '. paymentRef: ' . $required_response['paymentRef'] . '. ' . $required_response['message'] );
+					$order->payment_complete('Alpha Bank Payment ' . $required_response['status'] . '. txId: ' . $required_response['txId'] );
+					wp_redirect($this->get_return_url( $order ));
+					exit();
+				}
+				else{
+					$order->add_order_note('Payment received with incorrect amount. Alpha Bank Payment <strong>' . $required_response['status'] . '</strong>. '. $required_response['message'] );
 				}
 			}
 		}
-	} 
+		
+		// something went wrong so die
+		wp_die( 'Unspecified Error', 'Payment Gateway error', array( 'response' => 500 ) );
+	}
 }
 
 
@@ -300,4 +321,3 @@ function gateway_init_alphacard() {
 		return $methods;
 	}
 }
-/* */
