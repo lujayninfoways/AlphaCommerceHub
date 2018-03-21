@@ -14,6 +14,13 @@
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
+if ( 
+  in_array( 
+    'woocommerce/woocommerce.php', 
+    apply_filters( 'active_plugins', get_option( 'active_plugins' ) ) 
+  ) 
+) {
+	
 add_action('plugins_loaded', 'alpha_hub_commerce_init', 0);
 
 function alpha_hub_commerce_init() {
@@ -320,4 +327,21 @@ function gateway_init_alphacard() {
 		$methods[] = 'WC_Gateway_Alphacard';
 		return $methods;
 	}
+}
+	}
+else{
+	
+	function disabled_notice() {
+    global $current_screen;
+    if ($current_screen->parent_base == 'plugins'):
+      ?>
+      <div class="error" style="padding: 8px 8px;">
+        <strong>
+          <?= __('AlphaCommerceHub plugin requires <a href="http://www.woothemes.com/woocommerce/" target="_blank">WooCommerce</a> activated in order to work. Please install and activate <a href="' . admin_url('plugin-install.php?tab=search&type=term&s=WooCommerce') . '" target="_blank">WooCommerce</a> first.','video_gallery') ?>
+        </strong>
+      </div>
+      <?php
+    endif;
+  }
+add_action( 'admin_notices', 'disabled_notice' );
 }
