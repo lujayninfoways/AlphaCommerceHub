@@ -263,7 +263,7 @@ $aa= str_replace('\"',"",$_POST['data']);
 					<input type="hidden" name="OrderDetails[0].ItemQuantity" value="<?php echo $quantity; ?>">
 					<input type="hidden" name="UserId" value="<?php echo $this->get_option('UserID'); ?>">	
 					<input type="hidden" name="SuccessURL" value="<?php echo $order->get_checkout_payment_url( true ); ?>">	
-	
+	                                <input type="hidden" name="CancelURL" value="<?php echo $order->get_cancel_order_url(); ?>">
 			
 			<input type="submit" class="button alt" id="submit_twocheckout_payment_form" value="<?php echo __( 'Pay via Alpha bank', 'woocommerce' ) ?>" /> 
 			<a class="button cancel" href="<?php echo esc_url( $order->get_cancel_order_url() )?>"><?php echo __( 'Cancel order &amp; restore cart', 'woocommerce' )?></a>
