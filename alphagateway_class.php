@@ -215,7 +215,7 @@ $aa= str_replace('\"',"",$_POST['data']);
 
      $woocommerce->cart->empty_cart(); 
     $url=site_url(); 
-   wp_redirect( $url );
+      wp_redirect($this->get_return_url( $order ));
 			}
 		?>
 
