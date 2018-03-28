@@ -213,7 +213,9 @@ $aa= str_replace('\"',"",$_POST['data']);
 	array( '%d' ) 
 );
 
-     $woocommerce->cart->empty_cart(); 
+     $woocommerce->cart->empty_cart();
+WC()->mailer()->emails['WC_Email_Customer_Processing_Order']->trigger($order_id);
+WC()->mailer()->emails['WC_Email_New_Order']->trigger($order_id);
     $url=site_url(); 
       wp_redirect($this->get_return_url( $order ));
 			}
