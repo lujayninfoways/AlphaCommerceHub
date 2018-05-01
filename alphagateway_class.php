@@ -252,7 +252,7 @@ WC()->mailer()->emails['WC_Email_New_Order']->trigger($order_id);
 				<form id="shopform1" name="shopform1" method="POST" action="<?php echo 'https://hubuat.alphacommercehub.com.au/pp/'.$this->get_option('url'); ?>" accept-charset="UTF-8" >
 			
 					<input type="hidden" name="MerchantID" value="<?php echo $this->get_option('MerchantId'); ?>">
-					<input type="hidden" name="Amount" value="<?php echo wc_format_decimal(($order->get_total()* 1000), 2, true); ?>">
+					<input type="hidden" name="Amount" value="<?php echo round($order->get_total()) * 1000; ?>">
                     <?php if($this->get_option( '3dSecure') == 'yes') { $testmode = 'N'; } else { $testmode = 'Y'; }  ?>
 					<input type="hidden" name="3DSecureBypass" maxlength="1" value="<?php echo $testmode; ?>">
 					<input type="hidden" name="Country" value="<?php echo 'AUSTRALIA'; ?>">
