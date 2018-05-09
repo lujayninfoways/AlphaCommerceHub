@@ -188,16 +188,22 @@ class WC_Gateway_Alphapaypal extends WC_Payment_Gateway {
 		<?php $total = wc_format_decimal($order->get_total(), 2, true) * 1000 ; ?>
 				<form id="shopform1" name="shopform1" method="POST" action="<?php echo 'https://hubuat.alphacommercehub.com.au/pp/'.$this->get_option('url'); ?>" accept-charset="UTF-8" >
 			
-					<input type="hidden" name="Amount" value="<?php echo $total; ?>">
-					<input type="hidden" name="Currency" value="<?php echo $order->get_currency(); ?>">
-					<input type="hidden" name="CancelURL" value="<?php global $woocommerce; echo $woocommerce->cart->get_checkout_url(); ?>">
-					<input type="hidden" name="business" value="<?php echo $this->get_option('email'); ?>">
-					<input type="hidden" name="MerchantTxnID" value="<?php echo $order_id; ?>">
 					<input type="hidden" name="MerchantID" value="<?php echo $this->get_option('MerchantId'); ?>">
-					<input type="hidden" name="UserId" value="1">	
-					<input type="hidden" name="Version" value="2">	
-					<input type="hidden" name="ChannelType" value="07">		
-					<input type="hidden" name="TransactionType" value="AuthPayment">		
+					<input type="hidden" name="Amount" value="<?php echo round($order->get_total()) * 1000; ?>">
+                    <?php if($this->get_option( '3dSecure') == 'yes') { $testmode = 'N'; } else { $testmode = 'Y'; }  ?>
+					<input type="hidden" name="3DSecureBypass" maxlength="1" value="<?php echo $testmode; ?>">
+					<input type="hidden" name="Country" value="<?php echo 'AUSTRALIA'; ?>">
+					<input type="hidden" name="Currency" value="<?php echo $order->get_currency(); ?>">
+					
+					<input type="hidden" name="MerchantTxnID" value="<?php echo '00'.$order_id; ?>">
+					<input type="hidden" name="OrderDetails[0].ItemAmount" value="<?php echo wc_format_decimal(($order->get_total()* 1000), 2, true); ?>">	
+					<input type="hidden" name="OrderDetails[0].ItemName" value="<?php echo $product_name; ?>">	
+					<input type="hidden" name="OrderDetails[0].ItemDescription" value="<?php echo $product_name; ?>">	
+					<input type="hidden" name="OrderDetails[0].ItemQuantity" value="<?php echo $quantity; ?>">
+					<input type="hidden" name="UserId" value="<?php echo $this->get_option('UserID'); ?>">	
+					<input type="hidden" name="SuccessURL" value="<?php echo $order->get_checkout_payment_url( true ); ?>">	
+	                                <input type="hidden" name="CancelURL" value="<?php echo $order->get_cancel_order_url(); ?>">
+							
 					<input type="submit" class="button alt" id="submit_twocheckout_payment_form" value="<?php echo __( 'Pay via Alpha bank', 'woocommerce' ) ?>" /> 
 					<a class="button cancel" href="<?php echo esc_url( $order->get_cancel_order_url() )?>"><?php echo __( 'Cancel order &amp; restore cart', 'woocommerce' )?></a>
 				</form>		
