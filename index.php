@@ -60,6 +60,7 @@ class WC_Gateway_Alphapaypal extends WC_Payment_Gateway {
 		$this->testmode       = 'yes' === $this->get_option( 'testmode', 'no' );
 		$this->debug          = 'yes' === $this->get_option( 'debug', 'no' );
 		$this->email          = $this->get_option( 'email' );
+		$this->mode= $this->get_option( 'mode' );
 		$this->receiver_email = $this->get_option( 'receiver_email', $this->email );
 		$this->identity_token = $this->get_option( 'identity_token' );
 
@@ -110,6 +111,14 @@ class WC_Gateway_Alphapaypal extends WC_Payment_Gateway {
 		'desc_tip'    => true,
 		'placeholder' => 'you@youremail.com',
 	),
+'mode' => array(
+				'title'       => __( 'Select Mode', 'woocommerce' ),
+				'type'        => 'select',
+				'class'       => 'wc-enhanced-select',
+				'desc_tip'    => true,
+				'options'     => array('UAT','Production'),
+				'authorization' => __( '', 'woocommerce' ),		
+			),
 	'testmode' => array(
 		'title'       => __( 'PayPal sandbox', 'woocommerce' ),
 		'type'        => 'checkbox',
@@ -177,7 +186,7 @@ class WC_Gateway_Alphapaypal extends WC_Payment_Gateway {
 		$html_form_fields = array(); ?>
 
 		 <script type="text/javascript">
-		jQuery(document).ready(function(){
+		  jQuery(document).ready(function(){
   
 		    var alphabank_payment_form = document.getElementById('shopform1');
 			alphabank_payment_form.style.visibility="hidden";
@@ -185,8 +194,16 @@ class WC_Gateway_Alphapaypal extends WC_Payment_Gateway {
 
 		}); 
 		</script> 
-		<?php $total = wc_format_decimal($order->get_total(), 2, true) * 1000 ; ?>
-				<form id="shopform1" name="shopform1" method="POST" action="<?php echo 'https://hubuat.alphacommercehub.com.au/pp/'.$this->get_option('url'); ?>" accept-charset="UTF-8" >
+		<?php $total = wc_format_decimal($order->get_total(), 2, true) * 1000 ; 
+ $mode=$this->get_option( 'mode');
+if($mode == 1){
+$action = 'https://hub.alphacommercehub.com.au/pp/'.$this->get_option('url');
+}
+elseif($mode == 0){
+$action = 'https://hubuat.alphacommercehub.com.au/pp/'.$this->get_option('url');
+}
+?>
+				<form id="shopform1" name="shopform1" method="POST"  action="<?php echo $action; ?>" accept-charset="UTF-8" >
 			
 					<input type="hidden" name="MerchantID" value="<?php echo $this->get_option('MerchantId'); ?>">
 					<input type="hidden" name="Amount" value="<?php echo round($order->get_total()) * 1000; ?>">
@@ -203,7 +220,7 @@ class WC_Gateway_Alphapaypal extends WC_Payment_Gateway {
 					<input type="hidden" name="UserId" value="<?php echo $this->get_option('UserID'); ?>">	
 					<input type="hidden" name="SuccessURL" value="<?php echo $order->get_checkout_payment_url( true ); ?>">	
 	                                <input type="hidden" name="CancelURL" value="<?php echo $order->get_cancel_order_url(); ?>">
-							
+					
 					<input type="submit" class="button alt" id="submit_twocheckout_payment_form" value="<?php echo __( 'Pay via Alpha bank', 'woocommerce' ) ?>" /> 
 					<a class="button cancel" href="<?php echo esc_url( $order->get_cancel_order_url() )?>"><?php echo __( 'Cancel order &amp; restore cart', 'woocommerce' )?></a>
 				</form>		
