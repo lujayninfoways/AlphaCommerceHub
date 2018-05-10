@@ -24,6 +24,8 @@ class WC_Gateway_Alphacard extends WC_Payment_Gateway {
         // Get settings
         $this->title              = $this->get_option( 'title' );
         $this->description        = $this->get_option( 'description' );
+
+        $this->mode= $this->get_option( 'mode' );
         $this->instructions       = $this->get_option( 'instructions', $this->description );
 		$this->MerchantId = $this->get_option('MerchantId');
 		
@@ -121,6 +123,14 @@ class WC_Gateway_Alphacard extends WC_Payment_Gateway {
 				'type'        => 'checkbox',
 				'description' => 'uncheck this to disable 3d Secure',
 				'default'     => 'yes'
+			),
+                        'mode' => array(
+				'title'       => __( 'Select Mode', 'woocommerce' ),
+				'type'        => 'select',
+				'class'       => 'wc-enhanced-select',
+				'desc_tip'    => true,
+				'options'     => array('UAT','Production'),
+				'authorization' => __( '', 'woocommerce' ),		
 			),
 			'MerchantId' => array(
                 'title' => __('Alpha Bank Merchant ID', 'woocommerce'),
@@ -248,8 +258,16 @@ WC()->mailer()->emails['WC_Email_New_Order']->trigger($order_id);
      $product_name=str_replace(" ","",$product_name);
     ?>
 
-		<?php $total = wc_format_decimal($order->get_total(), 2, true) * 1000 ; ?>
-				<form id="shopform1" name="shopform1" method="POST" action="<?php echo 'https://hubuat.alphacommercehub.com.au/pp/'.$this->get_option('url'); ?>" accept-charset="UTF-8" >
+		<?php $total = wc_format_decimal($order->get_total(), 2, true) * 1000 ; 
+$mode=$this->get_option( 'mode');
+if($mode == 1){
+$action = 'https://hub.alphacommercehub.com.au/pp/'.$this->get_option('url');
+}
+elseif($mode == 0){
+$action = 'https://hubuat.alphacommercehub.com.au/pp/'.$this->get_option('url');
+}
+?>
+				<form id="shopform1" name="shopform1" method="POST" action="<?php echo $action; ?>" accept-charset="UTF-8" >
 			
 					<input type="hidden" name="MerchantID" value="<?php echo $this->get_option('MerchantId'); ?>">
 					<input type="hidden" name="Amount" value="<?php echo round($order->get_total()) * 1000; ?>">
