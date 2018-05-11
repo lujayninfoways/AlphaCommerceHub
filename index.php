@@ -145,6 +145,7 @@ class WC_Gateway_Alphapaypal extends WC_Payment_Gateway {
 		'type'        => 'text',
 		'description' => __( 'User ID', 'woocommerce' ),
 		'default'     => __( '', 'woocommerce' ),
+		'custom_attributes' => array( 'required' => 'required' ),
 				
 	),
 
